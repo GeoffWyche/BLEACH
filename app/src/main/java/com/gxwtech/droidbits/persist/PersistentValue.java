@@ -1,8 +1,6 @@
-package com.gxwtech.rtdemo;
+package com.gxwtech.droidbits.persist;
 
-import android.content.Context;
 import android.content.SharedPreferences;
-
 import org.joda.time.DateTime;
 
 /**

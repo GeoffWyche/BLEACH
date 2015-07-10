@@ -1,4 +1,4 @@
-package com.gxwtech.rtdemo;
+package com.gxwtech.droidbits.persist;
 
 import android.content.SharedPreferences;
 
