@@ -22,4 +22,5 @@ public class PersistentString extends PersistentValue {
                 .putString(mName + ts_suffix, DateTime.now().toDateTimeISO().toString())
                 .commit();
     }
+    public String getDefaultValue() { return mDefaultValue; }
 }
