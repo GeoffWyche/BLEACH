@@ -3,6 +3,7 @@ package no.nordicsemi.puckcentral.bluetooth.gatt.operations;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCharacteristic;
+import android.util.Log;
 
 import org.droidparts.util.L;
 
@@ -26,7 +27,11 @@ public class GattCharacteristicReadOperation extends GattOperation {
     public void execute(BluetoothGatt gatt) {
         L.d("writing to " + mCharacteristic);
         BluetoothGattCharacteristic characteristic = gatt.getService(mService).getCharacteristic(mCharacteristic);
-        gatt.readCharacteristic(characteristic);
+        if (characteristic == null) {
+            L.e("Could not find characteristic: " + mCharacteristic.toString());
+        } else {
+            gatt.readCharacteristic(characteristic);
+        }
     }
 
     @Override
@@ -35,6 +40,27 @@ public class GattCharacteristicReadOperation extends GattOperation {
     }
 
     public void onRead(BluetoothGattCharacteristic characteristic) {
-        mCallback.call(characteristic.getValue());
+
+        final byte[] value = characteristic.getValue();
+        if (value.length > 0) {
+            int intValue = characteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT8, 0);
+            L.e("1st-getIntValue(UINT8,0)=" + intValue);
+            String s = characteristic.getStringValue(0);
+            L.e("1st-getStringValue(0)=" + s);
+        } else {
+            L.e("1st-Value is zero length");
+        }
+
+        final byte[] value2 = characteristic.getValue();
+        if (value.length > 0) {
+            int intValue = characteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT8, 0);
+            L.e("2nd-getIntValue(UINT8,0)=" + intValue);
+            String s = characteristic.getStringValue(0);
+            L.e("2nd-getStringValue(0)=" + s);
+        } else {
+            L.e("2nd-value is zero length");
+        }
+
+        mCallback.call(value);
     }
 }

@@ -6,7 +6,267 @@
     android:paddingBottom="@dimen/activity_vertical_margin"
     tools:context="com.gxwtech.bleach.RileyLinkTestActivity">
 
-    <TextView android:text="@string/hello_world" android:layout_width="wrap_content"
-        android:layout_height="wrap_content" />
+    <LinearLayout
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Connected"
+                android:id="@+id/button_connected"
+                android:enabled="false" />
+            <Space
+                android:layout_width="20px"
+                android:layout_height="20px" />
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Services Found"
+                android:id="@+id/button_services_found"
+                android:enabled="false" />
+            <Space
+                android:layout_width="20px"
+                android:layout_height="20px" />
+
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="READ"
+                android:id="@+id/button_DBGRead"
+                android:onClick="onDBGReadButtonClick" />
+            <Space
+                android:layout_width="20px"
+                android:layout_height="20px" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="DBG"
+                android:id="@+id/textView_dbgLabel" />
+
+            <Space
+                android:layout_width="20px"
+                android:layout_height="20px" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="No Data"
+                android:id="@+id/textView_dbgValue" />
+
+        </LinearLayout>
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Write"
+                android:id="@+id/button_RFOn"
+                android:onClick="onRFOnButtonClick" />
+            <Space
+                android:layout_width="20px"
+                android:layout_height="20px" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="RF On 3 min"/>
+
+            <Space
+                android:layout_width="20px"
+                android:layout_height="20px" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="No Data"
+                android:id="@+id/textView_rfOnValue" />
+
+        </LinearLayout>
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Write"
+                android:id="@+id/button_PressDown"
+                android:onClick="onPressDownButtonClick" />
+            <Space
+                android:layout_width="20px"
+                android:layout_height="20px" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Press Down"/>
+
+            <Space
+                android:layout_width="20px"
+                android:layout_height="20px" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="No Data"
+                android:id="@+id/textView_PressDownValue" />
+
+        </LinearLayout>
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="READ"
+                android:id="@+id/button_BufLenRd"
+                android:onClick="onBufLenRdButtonClick" />
+            <Space
+                android:layout_width="20px"
+                android:layout_height="20px" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Buf Len Rd"
+                android:id="@+id/textView_BufLenRdLabel" />
+
+            <Space
+                android:layout_width="20px"
+                android:layout_height="20px" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="No Data"
+                android:id="@+id/textView_BufLenRdValue" />
+
+        </LinearLayout>
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="READ"
+                android:id="@+id/button_RxPacketTrigger"
+                android:onClick="onRxPacketTriggerButtonClick" />
+            <Space
+                android:layout_width="20px"
+                android:layout_height="20px" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Rx Packet Trigger"
+                android:id="@+id/textView_RxPacketTriggerLabel" />
+
+            <Space
+                android:layout_width="20px"
+                android:layout_height="20px" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="No Data"
+                android:id="@+id/textView_RxPacketTriggerValue" />
+
+        </LinearLayout>
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="READ"
+                android:id="@+id/button_PacketCountReadButton"
+                android:onClick="onPacketCountReadButtonClick" />
+            <Space
+                android:layout_width="20px"
+                android:layout_height="20px" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Packet Count"
+                android:id="@+id/textView_PacketCountLabel" />
+
+            <Space
+                android:layout_width="20px"
+                android:layout_height="20px" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="No Data"
+                android:id="@+id/textView_PacketCountValue" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="READ"
+                android:id="@+id/button_RxPacketReadButton"
+                android:onClick="onRxPacketReadButtonClick"/>
+            <Space
+                android:layout_width="20px"
+                android:layout_height="20px" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Rx Packet"
+                android:id="@+id/textView_RxPacketLabel" />
+
+            <Space
+                android:layout_width="20px"
+                android:layout_height="20px" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="No Data"
+                android:id="@+id/textView_RxPacketValue" />
+
+        </LinearLayout>
+
+        <ListView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/listView_msglist" />
+    </LinearLayout>
 
 </RelativeLayout>

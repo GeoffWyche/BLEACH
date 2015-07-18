@@ -19,14 +19,12 @@ public class GattSetNotificationOperation extends GattOperation {
 
     private final UUID mServiceUuid;
     private final UUID mCharacteristicUuid;
-    private final UUID mDescriptorUuid;
 
-    public GattSetNotificationOperation(BluetoothDevice device, UUID serviceUuid, UUID characteristicUuid, UUID descriptorUuid) {
+    public GattSetNotificationOperation(BluetoothDevice device, UUID serviceUuid, UUID characteristicUuid) {
         super(device);
         Injector.inject(Injector.getApplicationContext(), this);
         mServiceUuid = serviceUuid;
         mCharacteristicUuid = characteristicUuid;
-        mDescriptorUuid = descriptorUuid;
     }
 
     @Override
@@ -39,9 +37,10 @@ public class GattSetNotificationOperation extends GattOperation {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        BluetoothGattDescriptor descriptor = characteristic.getDescriptor(mDescriptorUuid);
+        BluetoothGattDescriptor descriptor = characteristic.getDescriptors().get(0);
         descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
         gatt.writeDescriptor(descriptor);
+
     }
 
     @Override

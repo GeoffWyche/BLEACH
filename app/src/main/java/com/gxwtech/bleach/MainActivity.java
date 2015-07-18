@@ -1,7 +1,5 @@
 package com.gxwtech.bleach;
 
-import android.app.Activity;
-import android.app.ListActivity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
@@ -13,17 +11,12 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.os.Handler;
-import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
-import android.view.LayoutInflater;
+import android.os.Handler;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
-import android.widget.BaseAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -33,6 +26,9 @@ import com.gxwtech.droidbits.persist.PersistentBoolean;
 import com.gxwtech.droidbits.persist.PersistentString;
 import com.gxwtech.droidbits.persist.PreferenceBackedStorage;
 
+import org.droidparts.activity.Activity;
+import org.droidparts.adapter.widget.ArrayAdapter;
+import org.droidparts.annotation.inject.InjectDependency;
 import org.droidparts.concurrent.task.AsyncTaskResultListener;
 import org.droidparts.concurrent.task.SimpleAsyncTask;
 import org.droidparts.util.L;
@@ -53,8 +49,10 @@ import no.nordicsemi.puckcentral.bluetooth.gatt.GattManager;
     Connect button opens control window
  */
 
-public class MainActivity extends ActionBarActivity {
+public class MainActivity extends Activity {
+    @InjectDependency
     GattManager mGattManager;
+
     //PreferenceBackedStorage mStorage;
     PersistentString mRLAddress;
     SharedPreferences p;
@@ -78,13 +76,9 @@ public class MainActivity extends ActionBarActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         mHandler = new Handler();
-
-        /*
-        adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, mDevList);
-        ((ListView)findViewById(R.id.scan_list)).setAdapter(adapter);
-*/
         p = getApplicationContext().getSharedPreferences(Constants.PREF_STORAGE_NAME, 0);
         mRLAddress = new PersistentString(p, "RileyLinkAddress", "(empty)");
+        //mRLAddress.set("invalid");
         L.e("RileyLinkAddress is " + mRLAddress.get());
 
 
@@ -115,6 +109,9 @@ public class MainActivity extends ActionBarActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        /*
+        This is done in Application
+
         L.e("CheckForBLE capability");
         CheckForBLECapability();
         //CheckForBLEPermission();
@@ -125,8 +122,12 @@ public class MainActivity extends ActionBarActivity {
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
         }
+        */
+        boolean isGoodAddress = ((BluetoothManager) getSystemService(Context
+                .BLUETOOTH_SERVICE)).getAdapter().checkBluetoothAddress(mRLAddress.get());
 
-        if (mRLAddress.get().equals(mRLAddress.getDefaultValue())) {
+
+        if (!isGoodAddress) {
             L.e("Bad address, scan");
             // value is unusable.  Prompt to Scan.
 
@@ -185,11 +186,15 @@ public class MainActivity extends ActionBarActivity {
         super.onActivityResult(requestCode, resultCode, data);
     }
 
+
+
     @Override
     protected void onPause() {
         super.onPause();
         scanLeDevice(false);
-        mLeDeviceListAdapter.clear();
+        if (mLeDeviceListAdapter != null) {
+            mLeDeviceListAdapter.clear();
+        }
     }
 
     BluetoothAdapter getAdapter() {
@@ -199,51 +204,9 @@ public class MainActivity extends ActionBarActivity {
     }
 
     public void launchRileyLinkActivity(BluetoothDevice device, RileyLink rileyLink) {
-
         final Intent intent = new Intent(this, RileyLinkTestActivity.class);
         intent.putExtra(RileyLinkTestActivity.EXTRAS_DEVICE_NAME, device.getName());
         intent.putExtra(RileyLinkTestActivity.EXTRAS_DEVICE_ADDRESS, device.getAddress());
-
-        device.connectGatt(MainActivity.this, true, new BluetoothGattCallback() {
-            @Override
-            public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
-                super.onConnectionStateChange(gatt, status, newState);
-
-                L.e("Got status " + status + " and state " + newState);
-                // Catch-all for a variety of undocumented error codes.
-                // Documented at https://code.google.com/r/naranjomanuel-opensource-broadcom-ble/source/browse/api/java/src/com/broadcom/bt/le/api/BleConstants.java?r=f535f31ec89eb3076a2b75ddf586f4b3fc44384b
-                if (status != BluetoothGatt.GATT_SUCCESS) {
-                    L.e("Ouch! Disconnecting! status: " + status + " newState " + newState);
-                    gatt.disconnect();
-                    return;
-                }
-
-                if (newState == BluetoothProfile.STATE_CONNECTED) {
-                    L.e("Connected to service!");
-                    gatt.discoverServices();
-                } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
-                    L.e("Link disconnected");
-                    gatt.close();
-                } else {
-                    L.e("Received something else, ");
-                }
-            }
-
-            @Override
-            public void onServicesDiscovered(BluetoothGatt gatt, int status) {
-                super.onServicesDiscovered(gatt, status);
-                ArrayList<UUID> serviceUUIDs = mRileyLink.getServiceUUIDs();
-
-                for (BluetoothGattService service : gatt.getServices()) {
-                    serviceUUIDs.add(service.getUuid());
-                }
-                mRileyLink.setServiceUUIDs(serviceUUIDs);
-                L.e("Now has services: " + mRileyLink.getServiceUUIDs());
-                gatt.disconnect();
-            }
-        });
-
-
         startActivity(intent);
 
     }
@@ -270,66 +233,6 @@ public class MainActivity extends ActionBarActivity {
         }
         invalidateOptionsMenu();
     }
-
-
-
-    private class FetchRileyLinkServices extends SimpleAsyncTask<Void> {
-        public RileyLink mRileyLink;
-        public FetchRileyLinkServices(Context ctx, AsyncTaskResultListener<Void> resultListener, RileyLink rileyLink) {
-            super(ctx, resultListener);
-            mRileyLink = rileyLink;
-        }
-
-        @Override
-        protected Void onExecute() throws Exception {
-            BluetoothAdapter bluetoothAdapter = ((BluetoothManager) getSystemService(Context
-                    .BLUETOOTH_SERVICE)).getAdapter();
-            BluetoothDevice device = bluetoothAdapter.getRemoteDevice(mRileyLink.getAddress());
-            L.e("Starting service discovery");
-            device.connectGatt(MainActivity.this, true, new BluetoothGattCallback() {
-                @Override
-                public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
-                    super.onConnectionStateChange(gatt, status, newState);
-
-                    L.e("Got status " + status + " and state " + newState);
-                    // Catch-all for a variety of undocumented error codes.
-                    // Documented at https://code.google.com/r/naranjomanuel-opensource-broadcom-ble/source/browse/api/java/src/com/broadcom/bt/le/api/BleConstants.java?r=f535f31ec89eb3076a2b75ddf586f4b3fc44384b
-                    if (status != BluetoothGatt.GATT_SUCCESS) {
-                        L.e("Ouch! Disconnecting! status: " + status + " newState " + newState);
-                        gatt.disconnect();
-                        return;
-                    }
-
-                    if (newState == BluetoothProfile.STATE_CONNECTED) {
-                        L.e("Connected to service!");
-                        gatt.discoverServices();
-                    } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
-                        L.e("Link disconnected");
-                        gatt.close();
-                    } else {
-                        L.e("Received something else, ");
-                    }
-                }
-
-                @Override
-                public void onServicesDiscovered(BluetoothGatt gatt, int status) {
-                    super.onServicesDiscovered(gatt, status);
-                    ArrayList<UUID> serviceUUIDs = mRileyLink.getServiceUUIDs();
-
-                    for (BluetoothGattService service : gatt.getServices()) {
-                        serviceUUIDs.add(service.getUuid());
-                    }
-                    mRileyLink.setServiceUUIDs(serviceUUIDs);
-                    L.e("Now has services: " + mRileyLink.getServiceUUIDs());
-                    gatt.disconnect();
-                }
-            });
-            return null;
-        }
-    }
-
-
-
 
     public void CheckForBLECapability() {
         // Use this check to determine whether BLE is supported on the device.  Then you can

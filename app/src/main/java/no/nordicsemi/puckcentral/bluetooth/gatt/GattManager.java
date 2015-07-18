@@ -139,6 +139,7 @@ public class GattManager {
                 @Override
                 public void onDescriptorRead(BluetoothGatt gatt, BluetoothGattDescriptor descriptor, int status) {
                     super.onDescriptorRead(gatt, descriptor, status);
+                    L.w("ggw onDescriptorRead, status: " + status);
                     ((GattDescriptorReadOperation) mCurrentOperation).onRead(descriptor);
                     setCurrentOperation(null);
                     drive();
@@ -147,6 +148,7 @@ public class GattManager {
                 @Override
                 public void onDescriptorWrite(BluetoothGatt gatt, BluetoothGattDescriptor descriptor, int status) {
                     super.onDescriptorWrite(gatt, descriptor, status);
+                    L.w("ggw onDescriptorWrite, status: " + status);
                     setCurrentOperation(null);
                     drive();
                 }
@@ -154,6 +156,7 @@ public class GattManager {
                 @Override
                 public void onCharacteristicRead(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
                     super.onCharacteristicRead(gatt, characteristic, status);
+                    L.w("ggw onCharacteristicRead, status: " + status);
                     ((GattCharacteristicReadOperation) mCurrentOperation).onRead(characteristic);
                     setCurrentOperation(null);
                     drive();
@@ -170,7 +173,7 @@ public class GattManager {
                 @Override
                 public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
                     super.onCharacteristicWrite(gatt, characteristic, status);
-                    L.d("Characteristic " + characteristic.getUuid() + "written to on device " + device.getAddress());
+                    L.w("ggw Characteristic " + characteristic.getUuid() + "written to on device " + device.getAddress());
                     setCurrentOperation(null);
                     drive();
                 }
@@ -178,7 +181,7 @@ public class GattManager {
                 @Override
                 public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
                     super.onCharacteristicChanged(gatt, characteristic);
-                    L.e("Characteristic " + characteristic.getUuid() + "was changed, device: " + device.getAddress());
+                    L.e("ggw Characteristic " + characteristic.getUuid() + "was changed, device: " + device.getAddress());
                     if (mCharacteristicChangeListeners.containsKey(characteristic.getUuid())) {
                         for (CharacteristicChangeListener listener : mCharacteristicChangeListeners.get(characteristic.getUuid())) {
                             listener.onCharacteristicChanged(device.getAddress(), characteristic);
@@ -205,7 +208,8 @@ public class GattManager {
     }
 
     public BluetoothGatt getGatt(BluetoothDevice device) {
-        return mGatts.get(device);
+        final BluetoothGatt rval = mGatts.get(device);
+        return rval;
     }
 
     public void addCharacteristicChangeListener(UUID characteristicUuid, CharacteristicChangeListener characteristicChangeListener) {
