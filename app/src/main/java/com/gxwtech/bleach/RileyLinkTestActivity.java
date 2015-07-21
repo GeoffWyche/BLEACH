@@ -170,39 +170,9 @@ public class RileyLinkTestActivity extends Activity implements CharacteristicCha
             0x02, 0x55, 0x00, 0x00, 0x00, 0x5d, 0x17, 0x01, 0x03};
     private byte[] testpacket2 = new byte[] {(byte)0xa7, 0x01, 0x46, 0x73, 0x24, (byte)0x80, 0x00, 0x00, 0x02, 0x01, 0x00, 0x70, (byte)0x7c};
 
-    public void onTestWriteButtonClick(View view) {
-        String CharaUUID = GattAttributes.GLUCOSELINK_TX_PACKET_UUID;
-        final int textViewId = R.id.textView_testWriteValue;
-        final byte[] packet = testpacket;
-        if (mDeviceAddress == null) {
-            return;
-        }
-        GattOperationBundle bundle = new GattOperationBundle();
-        bundle.addOperation(new GattCharacteristicWriteOperation(getDevice(), UUID.fromString(GattAttributes.GLUCOSELINK_SERVICE_UUID),
-                UUID.fromString(CharaUUID), packet));
-        bundle.addOperation(new GattCharacteristicReadOperation(getDevice(), UUID.fromString(GattAttributes.GLUCOSELINK_SERVICE_UUID),
-                UUID.fromString(CharaUUID), new GattCharacteristicReadCallback() {
-            @Override
-            public void call(byte[] characteristic) {
-                final String text = toHexString(characteristic);
-                lm("wrote: " + text);
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        ((TextView) findViewById(textViewId)).setText(text);
-                    }
-                });
-            }
-        }));
-        bundle.addOperation(new GattCharacteristicWriteOperation(getDevice(), UUID.fromString(GattAttributes.GLUCOSELINK_SERVICE_UUID),
-                UUID.fromString(GattAttributes.GLUCOSELINK_TX_TRIGGER_UUID), new byte[] {0x01}));
-        mGattManager.queue(bundle);
-        lm("(tx triggered)");
-    }
-
     public void onPressDownButtonClick(View view) {
         String CharaUUID = GattAttributes.GLUCOSELINK_TX_PACKET_UUID;
-        final int textViewId = R.id.textView_testWriteValue;
+        final int textViewId = R.id.textView_PressDownValue;
         byte[] pressdown_packet = new byte[] {(byte)0xa7, 0x01, 0x46, 0x73, 0x24, (byte)0x80, 0x01, 0x00, 0x01, 0x00, 0x00, 0x5b, (byte)0x9e, 0x04, (byte)0xc1};        final byte[] packet = testpacket;
         if (mDeviceAddress == null) {
             return;
