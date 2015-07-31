@@ -81,6 +81,7 @@
                 android:layout_height="wrap_content"
                 android:text="Write"
                 android:id="@+id/button_RFOn"
+                android:onClick="onRFOnClick"
                 />
             <Space
                 android:layout_width="20px"
@@ -163,38 +164,6 @@
                 android:layout_height="wrap_content"
                 android:text="No Data"
                 android:id="@+id/textView_BufLenRdValue" />
-
-        </LinearLayout>
-        <LinearLayout
-            android:orientation="horizontal"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content">
-
-            <Button
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="READ"
-                android:id="@+id/button_RxPacketTrigger"
-                android:onClick="onRxPacketTriggerButtonClick" />
-            <Space
-                android:layout_width="20px"
-                android:layout_height="20px" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Rx Packet Trigger"
-                android:id="@+id/textView_RxPacketTriggerLabel" />
-
-            <Space
-                android:layout_width="20px"
-                android:layout_height="20px" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="No Data"
-                android:id="@+id/textView_RxPacketTriggerValue" />
 
         </LinearLayout>
         <LinearLayout

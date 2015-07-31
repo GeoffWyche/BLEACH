@@ -26,8 +26,9 @@ public class RileyLinkCommand {
     public BluetoothDevice getDevice() { return mDevice; }
 
     public boolean addWrite(final byte[] pkt) {
+        final byte[] minimedRFData = RileyLinkUtil.composeRFStream(pkt);
         bundle.addOperation(new GattCharacteristicWriteOperation(getDevice(), UUID.fromString(GattAttributes.GLUCOSELINK_SERVICE_UUID),
-                UUID.fromString(GattAttributes.GLUCOSELINK_TX_PACKET_UUID), pkt));
+                UUID.fromString(GattAttributes.GLUCOSELINK_TX_PACKET_UUID), minimedRFData));
 
         bundle.addOperation(new GattCharacteristicWriteOperation(getDevice(), UUID.fromString(GattAttributes.GLUCOSELINK_SERVICE_UUID),
                 UUID.fromString(GattAttributes.GLUCOSELINK_TX_TRIGGER_UUID), new byte[] {0x01}));

@@ -27,6 +27,7 @@ import android.widget.Toast;
 import com.gxwtech.RileyLink.GattAttributes;
 import com.gxwtech.RileyLink.RileyLink;
 import com.gxwtech.RileyLink.RileyLinkCommand;
+import com.gxwtech.RileyLink.RileyLinkUtil;
 import com.gxwtech.droidbits.persist.PersistentString;
 
 import org.droidparts.adapter.widget.ArrayAdapter;
@@ -209,29 +210,21 @@ public class RileyLinkTestActivity extends Activity implements CharacteristicCha
         lm("(sent press-down packet)");
     }
 
+    public void sendRFOn(){
+        RileyLinkCommand cmdRFOn = new RileyLinkCommand(mDevice,mGattManager);
+        cmdRFOn.addWrite(pkt_rfOn3min);
+        cmdRFOn.run();
+    }
+
+    public void onRFOnClick(View view) {
+        if (mDeviceAddress == null) return;
+        sendRFOn();
+        lm("(sent RF-On packet");
+    }
+
     public void onPacketCountReadButtonClick(View view) {
         //setNotify();
-        onCharaRead(GattAttributes.GLUCOSELINK_PACKET_COUNT,R.id.textView_PacketCountValue);
-    }
-
-    public void onBufLenRdButtonClick(View view) {
-        onCharaRead(GattAttributes.GLUCOSELINK_BUF_LEN_RD,R.id.textView_BufLenRdValue);
-    }
-
-    public void onRxPacketTriggerButtonClick(View view) {
-        //onCharaRead(GattAttributes.GLUCOSELINK_BUF_LEN_RD,R.id.textView_BufLenRdValue);
-        String CharaUUID = GattAttributes.GLUCOSELINK_RX_PACKET_TRIGGER_UUID;
-        //final int textViewId =R.id.textView_RxPacketValue;
-        if (mDeviceAddress == null) {
-            return;
-        }
-        GattOperationBundle bundle = new GattOperationBundle();
-        byte[] testbuf = new byte[] {0x11};
-        bundle.addOperation(new GattCharacteristicWriteOperation(getDevice(), UUID.fromString(GattAttributes.GLUCOSELINK_SERVICE_UUID),
-                UUID.fromString(CharaUUID), testbuf));
-        lm("wrote to rx packet trigger: " + toHexString(testbuf));
-
-        mGattManager.queue(bundle);
+        onCharaRead(GattAttributes.GLUCOSELINK_PACKET_COUNT, R.id.textView_PacketCountValue);
     }
 
     public void onRxPacketReadButtonClick(View view) {
@@ -362,6 +355,7 @@ public class RileyLinkTestActivity extends Activity implements CharacteristicCha
         ListView lv = (ListView)findViewById(R.id.listView_msglist);
         lv.setAdapter(msgListAdapter);
         lm("onResume Ready");
+        RileyLinkUtil.test();
 
         if (getDevice()!=null) {
             lm("Connecting");

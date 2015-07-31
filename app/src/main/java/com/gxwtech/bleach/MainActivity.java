@@ -123,6 +123,7 @@ public class MainActivity extends Activity {
             startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
         }
         */
+        //mRLAddress.set("00:07:80:39:4C:B1");
         boolean isGoodAddress = ((BluetoothManager) getSystemService(Context
                 .BLUETOOTH_SERVICE)).getAdapter().checkBluetoothAddress(mRLAddress.get());
         isGoodAddress = false;
@@ -264,7 +265,7 @@ public class MainActivity extends Activity {
 
                 @Override
                 public void onLeScan(final BluetoothDevice device, int rssi, byte[] scanRecord) {
-                    L.e("onLeScan: device " + device.toString());
+                    //L.e("onLeScan: device " + device.toString());
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
