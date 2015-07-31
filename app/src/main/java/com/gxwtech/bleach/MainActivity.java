@@ -125,6 +125,7 @@ public class MainActivity extends Activity {
         */
         boolean isGoodAddress = ((BluetoothManager) getSystemService(Context
                 .BLUETOOTH_SERVICE)).getAdapter().checkBluetoothAddress(mRLAddress.get());
+        isGoodAddress = false;
 
 
         if (!isGoodAddress) {

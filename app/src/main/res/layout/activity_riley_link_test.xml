@@ -47,9 +47,9 @@
             <Button
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="READ"
-                android:id="@+id/button_DBGRead"
-                android:onClick="onDBGReadButtonClick" />
+                android:text="Init"
+                android:id="@+id/button_Init"
+                android:onClick="onInitButtonClick" />
             <Space
                 android:layout_width="20px"
                 android:layout_height="20px" />
@@ -57,8 +57,8 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="DBG"
-                android:id="@+id/textView_dbgLabel" />
+                android:text="Init 10min"
+                />
 
             <Space
                 android:layout_width="20px"
@@ -68,7 +68,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="No Data"
-                android:id="@+id/textView_dbgValue" />
+                android:id="@+id/textView_initValue" />
 
         </LinearLayout>
         <LinearLayout
@@ -81,7 +81,7 @@
                 android:layout_height="wrap_content"
                 android:text="Write"
                 android:id="@+id/button_RFOn"
-                android:onClick="onRFOnButtonClick" />
+                />
             <Space
                 android:layout_width="20px"
                 android:layout_height="20px" />
@@ -89,7 +89,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="RF On 3 min"/>
+                android:text="RF On 10 min"/>
 
             <Space
                 android:layout_width="20px"

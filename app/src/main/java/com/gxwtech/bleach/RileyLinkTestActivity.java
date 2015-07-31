@@ -14,6 +14,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import org.droidparts.activity.Activity;
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -25,6 +26,7 @@ import android.widget.Toast;
 
 import com.gxwtech.RileyLink.GattAttributes;
 import com.gxwtech.RileyLink.RileyLink;
+import com.gxwtech.RileyLink.RileyLinkCommand;
 import com.gxwtech.droidbits.persist.PersistentString;
 
 import org.droidparts.adapter.widget.ArrayAdapter;
@@ -54,11 +56,13 @@ public class RileyLinkTestActivity extends Activity implements CharacteristicCha
     public RileyLink mRileyLink;
     BluetoothGatt mGatt = null;
     BluetoothDevice mDevice = null;
+    int tpcounter = 0;
 
     private GattManager mGattManager;
 
     public ArrayList<String> msgList = new ArrayList<>();
     ArrayAdapter<String> msgListAdapter = null;
+    public Handler mHandler;
 
     //public GattManager mGattManager;
 
@@ -69,6 +73,7 @@ public class RileyLinkTestActivity extends Activity implements CharacteristicCha
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_riley_link_test);
+        mHandler = new Handler();
         mGattManager = new GattManager();
         mGattManager.addCharacteristicChangeListener(UUID.fromString(GattAttributes.GLUCOSELINK_PACKET_COUNT),this);
 
@@ -92,6 +97,7 @@ public class RileyLinkTestActivity extends Activity implements CharacteristicCha
                 .getSharedPreferences(Constants.PREF_STORAGE_NAME, 0), "RileyLinkAddress", "(empty)");
         L.e("RileyLinkAddress is " + mRLAddress.get());
         mRileyLink = new RileyLink(mRLAddress.get());
+
     }
 
     public final BluetoothDevice getDevice() {
@@ -101,7 +107,7 @@ public class RileyLinkTestActivity extends Activity implements CharacteristicCha
         return mDevice;
     }
 
-    /*
+
     public void setNotify() {
         BluetoothGatt gatt;
         if (getDevice() == null) {
@@ -137,7 +143,7 @@ public class RileyLinkTestActivity extends Activity implements CharacteristicCha
             }
         }
     }
-*/
+
 
     BluetoothAdapter getAdapter() {
         BluetoothAdapter bluetoothAdapter = ((BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE)).getAdapter();
@@ -160,44 +166,47 @@ public class RileyLinkTestActivity extends Activity implements CharacteristicCha
         return rval;
     }
 
-    public void onDBGReadButtonClick(View view) {
-        //setNotify();
-        onCharaRead(GattAttributes.GLUCOSELINK_DBG_UUID,R.id.textView_dbgValue);
-    }
-
     // this packet is: "turn on RF for 3 minutes"
-    private final byte[] testpacket = new byte[] {(byte)0xa7, 0x01, 0x46, 0x73, 0x24, (byte)0x80,
+    private final byte[] pkt_rfOn3min = new byte[] {(byte)0xa7, 0x01, 0x46, 0x73, 0x24, (byte)0x80,
             0x02, 0x55, 0x00, 0x00, 0x00, 0x5d, 0x17, 0x01, 0x03};
-    private byte[] testpacket2 = new byte[] {(byte)0xa7, 0x01, 0x46, 0x73, 0x24, (byte)0x80, 0x00, 0x00, 0x02, 0x01, 0x00, 0x70, (byte)0x7c};
 
-    public void onPressDownButtonClick(View view) {
-        String CharaUUID = GattAttributes.GLUCOSELINK_TX_PACKET_UUID;
-        final int textViewId = R.id.textView_PressDownValue;
-        byte[] pressdown_packet = new byte[] {(byte)0xa7, 0x01, 0x46, 0x73, 0x24, (byte)0x80, 0x01, 0x00, 0x01, 0x00, 0x00, 0x5b, (byte)0x9e, 0x04, (byte)0xc1};        final byte[] packet = testpacket;
+    private byte[] pkt_pressdown = new byte[] {(byte)0xa7, 0x01, 0x46, 0x73, 0x24,
+            (byte)0x80, 0x01, 0x00, 0x01, 0x00, 0x00, 0x5b, (byte)0x9e, 0x04, (byte)0xc1};
+
+    public int initButtonClicks = 0;
+    public void onInitButtonClick(View view) {
+        initButtonClicks++;
         if (mDeviceAddress == null) {
             return;
         }
-        GattOperationBundle bundle = new GattOperationBundle();
-        bundle.addOperation(new GattCharacteristicWriteOperation(getDevice(), UUID.fromString(GattAttributes.GLUCOSELINK_SERVICE_UUID),
-                UUID.fromString(CharaUUID), pressdown_packet));
-        bundle.addOperation(new GattCharacteristicReadOperation(getDevice(), UUID.fromString(GattAttributes.GLUCOSELINK_SERVICE_UUID),
-                UUID.fromString(CharaUUID), new GattCharacteristicReadCallback() {
+        RileyLinkCommand cmd = new RileyLinkCommand(mDevice,mGattManager);
+        cmd.addWrite(new byte[]{(byte) 0xa7});
+        cmd.run();
+        lm("Sent 0xa7 packet (x" + initButtonClicks + ")");
+/*
+        lm("(90 att + rf0n3min)");
+        mHandler.postDelayed(new Runnable() {
             @Override
-            public void call(byte[] characteristic) {
-                final String text = toHexString(characteristic);
-                lm("wrote: " + text);
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        ((TextView) findViewById(textViewId)).setText(text);
-                    }
-                });
+            public void run() {
+                sendButtonDown();
+                lm("ButtonDown");
             }
-        }));
-        bundle.addOperation(new GattCharacteristicWriteOperation(getDevice(), UUID.fromString(GattAttributes.GLUCOSELINK_SERVICE_UUID),
-                UUID.fromString(GattAttributes.GLUCOSELINK_TX_TRIGGER_UUID), new byte[] {0x01}));
-        mGattManager.queue(bundle);
-        lm("(tx triggered)");
+        }, 17 * 1000); // 17 seconds delay
+*/
+    }
+
+    public void sendButtonDown() {
+        RileyLinkCommand cmdButtonDown = new RileyLinkCommand(mDevice,mGattManager);
+        cmdButtonDown.addWrite(pkt_pressdown);
+        cmdButtonDown.run();
+    }
+
+    public void onPressDownButtonClick(View view) {
+        if (mDeviceAddress == null) {
+            return;
+        }
+        sendButtonDown();
+        lm("(sent press-down packet)");
     }
 
     public void onPacketCountReadButtonClick(View view) {
@@ -399,6 +408,9 @@ public class RileyLinkTestActivity extends Activity implements CharacteristicCha
                             for (BluetoothGattCharacteristic ch : clist) {
                                 if (ch.getUuid().equals(UUID.fromString(GattAttributes.GLUCOSELINK_PACKET_COUNT))) {
                                     Log.e("GGW", "Found Packet Count chara");
+                                    setNotify();
+                                    lm("setNotify()");
+
                                     List<BluetoothGattDescriptor> dlist = ch.getDescriptors();
                                     int i = 0;
                                     for (BluetoothGattDescriptor d : dlist) {
