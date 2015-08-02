@@ -1,7 +1,5 @@
 package com.gxwtech.RileyLink;
 
-import android.util.Log;
-
 /**
  * Created by geoff on 7/31/15.
  */
@@ -35,6 +33,19 @@ public class RileyLinkUtil {
             0x1c
     };
 
+    public static byte[] appendChecksum(final byte[] input) {
+        if (input == null) {
+            return null;
+        }
+        if (input.length == 0) {
+            return null;
+        }
+        byte[] rval = new byte[input.length+1];
+        System.arraycopy(input,0,rval,0,input.length);
+        rval[input.length] = CRC.crc8(input);
+        return rval;
+    }
+
     public static byte[] composeRFStream(byte[] input) {
         /*
          0xa7 -> (0xa -> 0x2a == 101010) + (0x7 -> 0x16 == 010110) == 1010 1001 0110 = 0xa96
@@ -49,7 +60,6 @@ public class RileyLinkUtil {
         byte[] rval = null;
         if (input == null) return rval;
         if (input.length == 0) return rval;
-        // outSize: 1->2, 2->3, 3->6, 4->8, 5->9
         int outSize = (int)(Math.ceil((input.length * 3.0) / 2.0));
         rval = new byte[outSize];
         for (int i=0; i< input.length; i++) {

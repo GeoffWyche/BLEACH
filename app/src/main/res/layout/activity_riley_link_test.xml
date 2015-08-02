@@ -112,6 +112,37 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Write"
+                android:id="@+id/button_readPumpModel"
+                android:onClick="onReadPumpModelClick" />
+            <Space
+                android:layout_width="20px"
+                android:layout_height="20px" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Read Pump Model"/>
+
+            <Space
+                android:layout_width="20px"
+                android:layout_height="20px" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="No Data"
+                android:id="@+id/textView_readPumpModelValue" />
+
+        </LinearLayout>
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Write"
                 android:id="@+id/button_PressDown"
                 android:onClick="onPressDownButtonClick" />
             <Space
@@ -132,38 +163,6 @@
                 android:layout_height="wrap_content"
                 android:text="No Data"
                 android:id="@+id/textView_PressDownValue" />
-
-        </LinearLayout>
-        <LinearLayout
-            android:orientation="horizontal"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content">
-
-            <Button
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="READ"
-                android:id="@+id/button_BufLenRd"
-                android:onClick="onBufLenRdButtonClick" />
-            <Space
-                android:layout_width="20px"
-                android:layout_height="20px" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Buf Len Rd"
-                android:id="@+id/textView_BufLenRdLabel" />
-
-            <Space
-                android:layout_width="20px"
-                android:layout_height="20px" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="No Data"
-                android:id="@+id/textView_BufLenRdValue" />
 
         </LinearLayout>
         <LinearLayout

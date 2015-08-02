@@ -24,6 +24,7 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.gxwtech.RileyLink.CRC;
 import com.gxwtech.RileyLink.GattAttributes;
 import com.gxwtech.RileyLink.RileyLink;
 import com.gxwtech.RileyLink.RileyLinkCommand;
@@ -36,6 +37,7 @@ import org.droidparts.concurrent.task.SimpleAsyncTask;
 import org.droidparts.util.L;
 import org.joda.time.DateTime;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -167,12 +169,48 @@ public class RileyLinkTestActivity extends Activity implements CharacteristicCha
         return rval;
     }
 
-    // this packet is: "turn on RF for 3 minutes"
-    private final byte[] pkt_rfOn3min = new byte[] {(byte)0xa7, 0x01, 0x46, 0x73, 0x24, (byte)0x80,
-            0x02, 0x55, 0x00, 0x00, 0x00, 0x5d, 0x17, 0x01, 0x03};
+    // this packet is: "turn on RF for 10 minutes"
+    // needs checksum appended?
+    private final byte[] pkt_rfOn10min = new byte[] {(byte)0xa7, 0x01, 0x46, 0x73, 0x24, (byte)0x80,
+            0x02, 0x55, 0x00, 0x00, 0x00, 0x5d, 0x17, 0x01, 0x0a};
 
-    private byte[] pkt_pressdown = new byte[] {(byte)0xa7, 0x01, 0x46, 0x73, 0x24,
+    public byte[] makeRFOnPacket() {
+        return new byte[] { (byte)0xa7, 0x46, 0x73, 0x24, 0x5d, 0x00, (byte)0xc5 };
+        /*
+        return new byte[] {0xa7, 0x46, 0x73, 0x24, 0x8d};
+        byte[] pkt_rfOn = new byte[] {(byte)0xa7, 0x01, 0x46, 0x73, 0x24, (byte)0x80,
+                0x02, 0x55, 0x00, 0x00, 0x00, 0x5d, 0x17};
+        final int len = pkt_rfOn.length;
+        byte[] b = new byte[len + 3];
+        System.arraycopy(pkt_rfOn,0,b,0,len);
+        b[len] = CRC.crc8(pkt_rfOn);
+        b[len+1] = 0x0a; // ten minutes
+        b[len+2] = CRC.crc8(new byte[] {0x0a}); // and the CRC for the param
+        return b;
+        */
+    }
+
+    private byte[] pkt_pressdown_ = new byte[] {(byte)0xa7, 0x01, 0x46, 0x73, 0x24,
             (byte)0x80, 0x01, 0x00, 0x01, 0x00, 0x00, 0x5b, (byte)0x9e, 0x04, (byte)0xc1};
+
+    public byte[] pkt_readPumpModel = new byte[] {(byte)0xa7, 0x46, 0x73, 0x24, 0x06, 0x00, 0x6e};
+
+    public byte[] makePressDownPacket() {
+        byte[] p = new byte[] {(byte)0xa7, 0x46, 0x73, 0x24, (byte)0x8d};
+        return p;
+/*
+        byte[] pkt = new byte[] {(byte)0xa7, 0x01, 0x46, 0x73, 0x24,
+                (byte)0x80, 0x01, 0x00, 0x01, 0x00, 0x00, 0x5b};
+        final int len = pkt.length;
+        byte[] b = new byte[len + 3];
+        System.arraycopy(pkt,0,b,0,len);
+        b[len] = CRC.crc8(pkt);
+        b[len+1] = 0x04; // down key
+        b[len+2] = CRC.crc8(new byte[] {0x04}); // and the CRC for the param
+        return b;
+        */
+
+    }
 
     public int initButtonClicks = 0;
     public void onInitButtonClick(View view) {
@@ -196,9 +234,20 @@ public class RileyLinkTestActivity extends Activity implements CharacteristicCha
 */
     }
 
+    public void sendReadPumpModel() {
+        RileyLinkCommand cmdReadPumpModel = new RileyLinkCommand(mDevice,mGattManager);
+        cmdReadPumpModel.addWrite(pkt_readPumpModel);
+        cmdReadPumpModel.run();
+    }
+    public void onReadPumpModelClick(View view) {
+        if (mDeviceAddress == null) return;
+        sendReadPumpModel();
+        lm("(sent readPumpModel packet)");
+    }
+
     public void sendButtonDown() {
         RileyLinkCommand cmdButtonDown = new RileyLinkCommand(mDevice,mGattManager);
-        cmdButtonDown.addWrite(pkt_pressdown);
+        cmdButtonDown.addWrite(makePressDownPacket());
         cmdButtonDown.run();
     }
 
@@ -212,14 +261,15 @@ public class RileyLinkTestActivity extends Activity implements CharacteristicCha
 
     public void sendRFOn(){
         RileyLinkCommand cmdRFOn = new RileyLinkCommand(mDevice,mGattManager);
-        cmdRFOn.addWrite(pkt_rfOn3min);
+        //cmdRFOn.addWrite(pkt_rfOn10min);
+        cmdRFOn.addWrite(makeRFOnPacket());
         cmdRFOn.run();
     }
 
     public void onRFOnClick(View view) {
         if (mDeviceAddress == null) return;
         sendRFOn();
-        lm("(sent RF-On packet");
+        lm("(sent RF-On 10 minutes packet)");
     }
 
     public void onPacketCountReadButtonClick(View view) {

@@ -27,6 +27,7 @@ public class RileyLinkCommand {
 
     public boolean addWrite(final byte[] pkt) {
         final byte[] minimedRFData = RileyLinkUtil.composeRFStream(pkt);
+
         bundle.addOperation(new GattCharacteristicWriteOperation(getDevice(), UUID.fromString(GattAttributes.GLUCOSELINK_SERVICE_UUID),
                 UUID.fromString(GattAttributes.GLUCOSELINK_TX_PACKET_UUID), minimedRFData));
 
