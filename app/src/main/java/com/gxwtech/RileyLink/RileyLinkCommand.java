@@ -26,13 +26,20 @@ public class RileyLinkCommand {
     public BluetoothDevice getDevice() { return mDevice; }
 
     public boolean addWrite(final byte[] pkt) {
+        boolean chanswitch = true;
         final byte[] minimedRFData = RileyLinkUtil.composeRFStream(pkt);
+        // Switch to channel 0 for sending.
+        if (chanswitch) bundle.addOperation(new GattCharacteristicWriteOperation(getDevice(), UUID.fromString(GattAttributes.GLUCOSELINK_SERVICE_UUID),
+                UUID.fromString(GattAttributes.GLUCOSELINK_CHANNEL_UUID), new byte[] {0x00}));
 
         bundle.addOperation(new GattCharacteristicWriteOperation(getDevice(), UUID.fromString(GattAttributes.GLUCOSELINK_SERVICE_UUID),
                 UUID.fromString(GattAttributes.GLUCOSELINK_TX_PACKET_UUID), minimedRFData));
-
+        // when writing to TxTrigger, the data doesn't matter -- only the act of writing.
         bundle.addOperation(new GattCharacteristicWriteOperation(getDevice(), UUID.fromString(GattAttributes.GLUCOSELINK_SERVICE_UUID),
                 UUID.fromString(GattAttributes.GLUCOSELINK_TX_TRIGGER_UUID), new byte[] {0x01}));
+        // Switch back to channel 2 after sending.
+        if (chanswitch) bundle.addOperation(new GattCharacteristicWriteOperation(getDevice(), UUID.fromString(GattAttributes.GLUCOSELINK_SERVICE_UUID),
+                UUID.fromString(GattAttributes.GLUCOSELINK_CHANNEL_UUID), new byte[] {0x02}));
 
         return true;
     }

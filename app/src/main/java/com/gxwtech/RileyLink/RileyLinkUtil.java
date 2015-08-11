@@ -61,7 +61,7 @@ public class RileyLinkUtil {
         if (input == null) return rval;
         if (input.length == 0) return rval;
         int outSize = (int)(Math.ceil((input.length * 3.0) / 2.0));
-        rval = new byte[outSize];
+        rval = new byte[outSize+1];
         for (int i=0; i< input.length; i++) {
             int rfBytes = composeRFBytes(input[i]);
             int outIndex = ((i/2) * 3) + (i%2);
@@ -74,6 +74,8 @@ public class RileyLinkUtil {
                 rval[outIndex+1] = (byte)(rfBytes >> 4);
             }
         }
+        rval[outSize] = 0;
+        //rval[outSize+1] = 0;
         return rval;
     }
 
