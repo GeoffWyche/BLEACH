@@ -13,6 +13,7 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Handler;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -22,6 +23,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.gxwtech.RileyLink.RileyLink;
+import com.gxwtech.RileyLink.RileyLinkUtil;
 import com.gxwtech.droidbits.persist.PersistentBoolean;
 import com.gxwtech.droidbits.persist.PersistentString;
 import com.gxwtech.droidbits.persist.PreferenceBackedStorage;
@@ -124,6 +126,13 @@ public class MainActivity extends Activity {
         }
         */
         //mRLAddress.set("00:07:80:39:4C:B1");
+/*
+        byte[] testBytes = new byte[] {(byte)0xa7, 0x46, 0x73, 0x24, 0x5d, 0x00};
+        byte[] check = RileyLinkUtil.composeRFStream(testBytes);
+        Log.d("GGW testing", "source: " + RileyLinkUtil.toHexString(testBytes));
+        Log.d("GGW testing", "out: " + RileyLinkUtil.toHexString(check));
+*/
+
         boolean isGoodAddress = ((BluetoothManager) getSystemService(Context
                 .BLUETOOTH_SERVICE)).getAdapter().checkBluetoothAddress(mRLAddress.get());
         isGoodAddress = false;

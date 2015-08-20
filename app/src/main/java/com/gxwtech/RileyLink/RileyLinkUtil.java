@@ -1,5 +1,9 @@
 package com.gxwtech.RileyLink;
 
+import android.util.Log;
+
+import java.util.ArrayList;
+
 /**
  * Created by geoff on 7/31/15.
  */
@@ -46,7 +50,7 @@ public class RileyLinkUtil {
         return rval;
     }
 
-    public static byte[] composeRFStream(byte[] input) {
+    public static byte[] xcomposeRFStream(byte[] input) {
         /*
          0xa7 -> (0xa -> 0x2a == 101010) + (0x7 -> 0x16 == 010110) == 1010 1001 0110 = 0xa96
          0x12 -> (0x1 -> 0x31 == 110001) + (0x2 -> 0x32 == 110010) == 1100 0111 0010 = 0xc72
@@ -76,6 +80,18 @@ public class RileyLinkUtil {
         }
         rval[outSize] = 0;
         //rval[outSize+1] = 0;
+
+        /* check that the other algorithm matches */
+        Log.e(TAG,"ComposeRFStream: input is " + RileyLinkUtil.toHexString(input));
+        Log.e(TAG,"ComposeRFStream: output is " + RileyLinkUtil.toHexString(rval));
+        byte[] checkEm = encodeData(input);
+
+        /* these asserts failed.  Why? */
+        assert checkEm.length == rval.length;
+        for (int i=0; i< checkEm.length; i++) {
+            assert checkEm[i] == rval[i];
+        }
+
         return rval;
     }
 
@@ -100,6 +116,105 @@ public class RileyLinkUtil {
         return rval;
     }
 
+    public static ArrayList<Byte> fromBytes(byte[] data) {
+        ArrayList<Byte> rval = new ArrayList<>();
+        for (int i=0; i<data.length; i++) {
+            rval.add(data[i]);
+        }
+        return rval;
+    }
+
+    public static byte[] toBytes(ArrayList<Byte> data) {
+        byte[] rval = new byte[data.size()];
+        for (int i = 0; i < data.size(); i++) {
+            rval[i] = data.get(i);
+        }
+        return rval;
+    }
+
+/*
+    + (NSData*)encodeData:(NSData*)data {
+        NSMutableData *outData = [NSMutableData data];
+        NSMutableData *dataPlusCrc = [data mutableCopy];
+        unsigned char crc = [MinimedPacket crcForData:data];
+        [dataPlusCrc appendBytes:&crc length:1];
+        char codes[16] = {21,49,50,35,52,37,38,22,26,25,42,11,44,13,14,28};
+        const unsigned char *inBytes = [dataPlusCrc bytes];
+        unsigned int acc = 0x0;
+        int bitcount = 0;
+        for (int i=0; i < dataPlusCrc.length; i++) {
+            acc <<= 6;
+            acc |= codes[inBytes[i] >> 4];
+            bitcount += 6;
+
+            acc <<= 6;
+            acc |= codes[inBytes[i] & 0x0f];
+            bitcount += 6;
+
+            while (bitcount >= 8) {
+                unsigned char outByte = acc >> (bitcount-8) & 0xff;
+                [outData appendBytes:&outByte length:1];
+                bitcount -= 8;
+                acc &= (0xffff >> (16-bitcount));
+            }
+        }
+        if (bitcount > 0) {
+            acc <<= (8-bitcount);
+            unsigned char outByte = acc & 0xff;
+            [outData appendBytes:&outByte length:1];
+        }
+        return outData;
+    }
+*/
+
+    public static byte[] encodeData(byte[] data) {
+        // use arraylists because byte[] is annoying.
+        ArrayList<Byte> inData = fromBytes(data);
+        ArrayList<Byte> outData = new ArrayList<>();
+        /*
+        ArrayList<Byte> dataPlusCrc = fromBytes(OtherCRC.appendCRC(data));
+        ArrayList<Byte> dataPlusMyCrc = fromBytes(data);
+        */
+        //dataPlusMyCrc.add(CRC.crc8(data));
+
+        final byte[] codes = new byte[] {21,49,50,35,52,37,38,22,26,25,42,11,44,13,14,28 };
+        int acc = 0;
+        int bitcount = 0;
+        int i;
+        for (i=0; i<inData.size(); i++) {
+            acc <<= 6;
+            acc |= codes[(inData.get(i) >> 4) & 0x0f];
+            bitcount += 6;
+
+            acc <<= 6;
+            acc |= codes[inData.get(i) & 0x0f];
+            bitcount += 6;
+
+            while (bitcount >= 8) {
+                byte outByte = (byte)(acc >> (bitcount-8) & 0xff);
+                outData.add(outByte);
+                bitcount -= 8;
+                acc &= (0xffff >> (16 - bitcount));
+            }
+        }
+        if (bitcount > 0) {
+            acc <<= (8-bitcount);
+            byte outByte = (byte)(acc & 0xff);
+            outData.add(outByte);
+        }
+
+
+        // convert back to byte[]
+        byte[] rval = toBytes(outData);
+
+        Log.e(TAG,"encodeData: (length " + data.length + ") input is " + toHexString(data));
+        //Log.e(TAG,"encodeData: input with OtherCRC is " + toHexString(toBytes(dataPlusCrc)));
+        //Log.e(TAG,"encodeData: input with My CRC is " +toHexString(toBytes(dataPlusMyCrc)));
+        Log.e(TAG,"encodeData: (length " + rval.length + ") output is " + toHexString(rval));
+        return rval;
+
+    }
+
     //public static byte[] composeRFBitstream(byte[] data) {
     //}
 /*
@@ -121,9 +236,9 @@ public class RileyLinkUtil {
         int result;
         result = composeRFBytes((byte)0xa7);
 
-        byte[] bs = composeRFStream(new byte[] {(byte)0xa7});
-        bs = composeRFStream(new byte[] {(byte) 0xa7, 0x12});
-        bs = composeRFStream(new byte[] {(byte) 0xa7, 0x12, (byte) 0xa7});
+        byte[] bs = encodeData(new byte[]{(byte) 0xa7});
+        bs = encodeData(new byte[]{(byte) 0xa7, 0x12});
+        bs = encodeData(new byte[]{(byte) 0xa7, 0x12, (byte) 0xa7});
         return;
     }
 

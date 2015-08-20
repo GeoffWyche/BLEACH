@@ -5,4 +5,5 @@ package com.gxwtech.bleach;
  */
 public abstract class Constants {
     public static final String PREF_STORAGE_NAME = "RileyLinkPrefStorage";
+
 }

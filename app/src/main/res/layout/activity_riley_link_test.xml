@@ -19,37 +19,10 @@
             <Button
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Connected"
-                android:id="@+id/button_connected"
-                android:enabled="false" />
-            <Space
-                android:layout_width="20px"
-                android:layout_height="20px" />
-
-            <Button
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Services Found"
-                android:id="@+id/button_services_found"
-                android:enabled="false" />
-            <Space
-                android:layout_width="20px"
-                android:layout_height="20px" />
-
-
-        </LinearLayout>
-
-        <LinearLayout
-            android:orientation="horizontal"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content">
-
-            <Button
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
                 android:text="Init"
+                android:enabled="false"
                 android:id="@+id/button_Init"
-                android:onClick="onInitButtonClick" />
+                android:onClick="onConfigureButtonClick" />
             <Space
                 android:layout_width="20px"
                 android:layout_height="20px" />
@@ -57,18 +30,8 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Init 10min"
+                android:text="Configure RileyLink"
                 />
-
-            <Space
-                android:layout_width="20px"
-                android:layout_height="20px" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="No Data"
-                android:id="@+id/textView_initValue" />
 
         </LinearLayout>
         <LinearLayout
@@ -79,9 +42,10 @@
             <Button
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Write"
-                android:id="@+id/button_RFOn"
-                android:onClick="onRFOnClick"
+                android:enabled="false"
+                android:text="Read"
+                android:id="@+id/button_batteryLevel"
+                android:onClick="onReadBatteryLevelClick"
                 />
             <Space
                 android:layout_width="20px"
@@ -90,7 +54,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="RF On 10 min"/>
+                android:text="Battery Level"/>
 
             <Space
                 android:layout_width="20px"
@@ -100,7 +64,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="No Data"
-                android:id="@+id/textView_rfOnValue" />
+                android:id="@+id/textView_batteryLevelValue" />
 
         </LinearLayout>
         <LinearLayout
@@ -111,68 +75,7 @@
             <Button
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Write"
-                android:id="@+id/button_readPumpModel"
-                android:onClick="onReadPumpModelClick" />
-            <Space
-                android:layout_width="20px"
-                android:layout_height="20px" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Read Pump Model"/>
-
-            <Space
-                android:layout_width="20px"
-                android:layout_height="20px" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="No Data"
-                android:id="@+id/textView_readPumpModelValue" />
-
-        </LinearLayout>
-        <LinearLayout
-            android:orientation="horizontal"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content">
-
-            <Button
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Write"
-                android:id="@+id/button_PressDown"
-                android:onClick="onPressDownButtonClick" />
-            <Space
-                android:layout_width="20px"
-                android:layout_height="20px" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Press Down"/>
-
-            <Space
-                android:layout_width="20px"
-                android:layout_height="20px" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="No Data"
-                android:id="@+id/textView_PressDownValue" />
-
-        </LinearLayout>
-        <LinearLayout
-            android:orientation="horizontal"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content">
-
-            <Button
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:enabled="false"
                 android:text="READ"
                 android:id="@+id/button_PacketCountReadButton"
                 android:onClick="onPacketCountReadButtonClick" />
@@ -206,31 +109,60 @@
             <Button
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="READ"
-                android:id="@+id/button_RxPacketReadButton"
-                android:onClick="onRxPacketReadButtonClick"/>
+                android:enabled="false"
+                android:text="TxC:x"
+                android:id="@+id/button_incTxChan"
+                android:onClick="onIncTxCButtonClick"/>
             <Space
                 android:layout_width="20px"
                 android:layout_height="20px" />
 
-            <TextView
+            <Button
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Rx Packet"
-                android:id="@+id/textView_RxPacketLabel" />
-
+                android:enabled="false"
+                android:text="RxC:x"
+                android:id="@+id/button_incRxChan"
+                android:onClick="onIncRxCButtonClick"/>
             <Space
                 android:layout_width="20px"
                 android:layout_height="20px" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="No Data"
-                android:id="@+id/textView_RxPacketValue" />
 
         </LinearLayout>
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
 
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Init 90Pkt"
+                android:id="@+id/Init90pkt"
+                android:layout_alignParentTop="true"
+                android:layout_alignParentStart="true"
+                android:onClick="onInit90ButtonClick"/>
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Req Pump Model"
+                android:id="@+id/button3"
+                android:layout_below="@+id/Init90pkt"
+                android:layout_alignParentStart="true"
+                android:onClick="onReqModelNumberButtonClick"/>
+
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Down Button"
+                android:id="@+id/button2"
+                android:layout_below="@+id/button3"
+                android:layout_alignParentStart="true"
+                android:onClick="onSendButtonDownButtonClick"/>
+
+        </LinearLayout>
         <ListView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

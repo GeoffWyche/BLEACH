@@ -9,12 +9,14 @@ import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import org.droidparts.activity.Activity;
 import android.os.Bundle;
 import android.os.Handler;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -26,6 +28,7 @@ import android.widget.Toast;
 
 import com.gxwtech.RileyLink.CRC;
 import com.gxwtech.RileyLink.GattAttributes;
+import com.gxwtech.RileyLink.ReadBatteryLevelCommand;
 import com.gxwtech.RileyLink.RileyLink;
 import com.gxwtech.RileyLink.RileyLinkCommand;
 import com.gxwtech.RileyLink.RileyLinkUtil;
@@ -54,12 +57,17 @@ import no.nordicsemi.puckcentral.bluetooth.gatt.operations.GattSetNotificationOp
 public class RileyLinkTestActivity extends Activity implements CharacteristicChangeListener {
     public static final String EXTRAS_DEVICE_NAME = "DEVICE_NAME";
     public static final String EXTRAS_DEVICE_ADDRESS = "DEVICE_ADDRESS";
+    BroadcastReceiver mBroadcastReceiver;
     public String mDeviceName;
     public String mDeviceAddress;
     public RileyLink mRileyLink;
     BluetoothGatt mGatt = null;
     BluetoothDevice mDevice = null;
-    int tpcounter = 0;
+    public static final int WAKEUP_COUNTER_MAX = 90; // number of wakeup packets to send
+    public static final int WAKEUP_PERIOD = 80; // milliseconds delay per wakeup packet
+    int wakeupCounter = WAKEUP_COUNTER_MAX;
+    public static final int RX_POLL_PERIOD_MS = 1000; // one second poll interval on RxPacket
+    // (will drain, if anything is received)
 
     private GattManager mGattManager;
 
@@ -67,10 +75,9 @@ public class RileyLinkTestActivity extends Activity implements CharacteristicCha
     ArrayAdapter<String> msgListAdapter = null;
     public Handler mHandler;
 
-    //public GattManager mGattManager;
-
-    //public CharaWidget mPacketCountWidget;
-    //public CharaWidget mRxPacketWidget;
+    int txchan = 0;
+    int rxchan = 2;
+    boolean mPolling = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -78,16 +85,10 @@ public class RileyLinkTestActivity extends Activity implements CharacteristicCha
         setContentView(R.layout.activity_riley_link_test);
         mHandler = new Handler();
         mGattManager = new GattManager();
-        mGattManager.addCharacteristicChangeListener(UUID.fromString(GattAttributes.GLUCOSELINK_PACKET_COUNT),this);
+        mGattManager.addCharacteristicChangeListener(UUID.fromString(GattAttributes.GLUCOSELINK_PACKET_COUNT), this);
 
-        /*
-        mPacketCountWidget = new CharaWidget(getApplicationContext(),R.id.textView_PacketCountLabel,
-                R.id.textView_PacketCountValue,R.id.button_PacketCountReadButton);
-        mRxPacketWidget = new CharaWidget(getApplicationContext(),R.id.textView_RxPacketLabel,
-                R.id.textView_RxPacketValue,R.id.button_RxPacketReadButton);
-*/
         Intent intent = getIntent();
-        if (intent!=null) {
+        if (intent != null) {
             if (intent.hasExtra(EXTRAS_DEVICE_NAME)) {
                 mDeviceName = intent.getStringExtra(EXTRAS_DEVICE_NAME);
             }
@@ -100,6 +101,12 @@ public class RileyLinkTestActivity extends Activity implements CharacteristicCha
                 .getSharedPreferences(Constants.PREF_STORAGE_NAME, 0), "RileyLinkAddress", "(empty)");
         L.e("RileyLinkAddress is " + mRLAddress.get());
         mRileyLink = new RileyLink(mRLAddress.get());
+
+        mBroadcastReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+            }
+        };
 
     }
 
@@ -114,14 +121,14 @@ public class RileyLinkTestActivity extends Activity implements CharacteristicCha
     public void setNotify() {
         BluetoothGatt gatt;
         if (getDevice() == null) {
+            lm("Get device failed");
             return;
         }
 
-        //gatt = mGattManager.getGatt(getDevice());
         gatt = mGatt;
 
         if (gatt == null) {
-            L.e("no gatt to connect");
+            lm("no gatt to connect");
             return;
         }
 
@@ -139,12 +146,13 @@ public class RileyLinkTestActivity extends Activity implements CharacteristicCha
             }
         } else {
             // It's a notify characteristic
-            L.d("onServicesDiscovered", "Characteristic (" + characteristic.getUuid() + ") is NOTIFY");
+            lm("Characteristic (" + characteristic.getUuid() + ") is NOTIFY");
             if (descriptor != null) {
                 descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
                 gatt.writeDescriptor(descriptor);
             }
         }
+        lm("notify has been set in RileyLink");
     }
 
 
@@ -154,7 +162,7 @@ public class RileyLinkTestActivity extends Activity implements CharacteristicCha
     }
 
     public String toHexString(byte[] bs) {
-        if (bs==null) {
+        if (bs == null) {
             return "(null)";
         }
         if (bs.length == 0) {
@@ -162,8 +170,8 @@ public class RileyLinkTestActivity extends Activity implements CharacteristicCha
         }
         String rval = String.format("%02X", bs[0]);
         if (bs.length > 1) {
-            for (int i=1; i<bs.length; i++) {
-                rval += String.format(" %02X",bs[i]);
+            for (int i = 1; i < bs.length; i++) {
+                rval += String.format(" %02X", bs[i]);
             }
         }
         return rval;
@@ -171,116 +179,113 @@ public class RileyLinkTestActivity extends Activity implements CharacteristicCha
 
     // this packet is: "turn on RF for 10 minutes"
     // needs checksum appended?
-    private final byte[] pkt_rfOn10min = new byte[] {(byte)0xa7, 0x01, 0x46, 0x73, 0x24, (byte)0x80,
+    private final byte[] pkt_rfOn10min = new byte[]{(byte) 0xa7, 0x01, 0x46, 0x73, 0x24, (byte) 0x80,
             0x02, 0x55, 0x00, 0x00, 0x00, 0x5d, 0x17, 0x01, 0x0a};
 
     public byte[] makeRFOnPacket() {
-        return new byte[] { (byte)0xa7, 0x46, 0x73, 0x24, 0x5d, 0x00, (byte)0xc5 };
-        /*
-        return new byte[] {0xa7, 0x46, 0x73, 0x24, 0x8d};
-        byte[] pkt_rfOn = new byte[] {(byte)0xa7, 0x01, 0x46, 0x73, 0x24, (byte)0x80,
-                0x02, 0x55, 0x00, 0x00, 0x00, 0x5d, 0x17};
-        final int len = pkt_rfOn.length;
-        byte[] b = new byte[len + 3];
-        System.arraycopy(pkt_rfOn,0,b,0,len);
-        b[len] = CRC.crc8(pkt_rfOn);
-        b[len+1] = 0x0a; // ten minutes
-        b[len+2] = CRC.crc8(new byte[] {0x0a}); // and the CRC for the param
-        return b;
-        */
+        return new byte[]{(byte) 0xa7, 0x46, 0x73, 0x24, 0x5d, 0x00, (byte) 0xc5};
     }
 
-    private byte[] pkt_pressdown_ = new byte[] {(byte)0xa7, 0x01, 0x46, 0x73, 0x24,
-            (byte)0x80, 0x01, 0x00, 0x01, 0x00, 0x00, 0x5b, (byte)0x9e, 0x04, (byte)0xc1};
+    // THIS PACKET WORKED! (after sending 90+ attention packets AND receiving a response packet
+    // public byte[] pkt_readPumpModel = new byte[]{(byte) 0xa7, 0x46, 0x73, 0x24, 0x06, 0x00};
+    public byte[] pkt_readPumpModel = new byte[]{(byte) 0xa7, 0x46, 0x73, 0x24, (byte)0x8d, 0x00};
+    // anatomy:
+    // 0xa7: attention byte
+    // 0x46 0x73 0x24: pump serial
+    // 0x8d: read RTC
+    // 0x00: ?? (number parameters?  first parameter?)
+    // (not shown: checksum of first 6 bytes
+    // the response:  0d 00 a7 46 73 24 8d 09 03 37 32 32 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 7e
 
-    public byte[] pkt_readPumpModel = new byte[] {(byte)0xa7, 0x46, 0x73, 0x24, 0x06, 0x00, 0x6e};
+    public byte[] pkt_readPumpRTC = new byte[]{(byte) 0xa7, 0x46, 0x73, 0x24, 0x70};
 
     public byte[] makePressDownPacket() {
-        byte[] p = new byte[] {(byte)0xa7, 0x46, 0x73, 0x24, (byte)0x5b, 0x00, (byte)0xb1};
-
-        p = new byte[] {(byte)0xa7, 0x46, 0x73, 0x24, 0x5b, 0x01, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x4d};
-        byte checksum = CRC.crc8(p,p.length-1);
-        lm("CS is " + checksum);
+        byte[] p = new byte[]{(byte) 0xa7, 0x46, 0x73, 0x24, 0x5b, (byte)0x80, 0x01, 0x04};
         return p;
-/*
-        byte[] pkt = new byte[] {(byte)0xa7, 0x01, 0x46, 0x73, 0x24,
-                (byte)0x80, 0x01, 0x00, 0x01, 0x00, 0x00, 0x5b};
-        final int len = pkt.length;
-        byte[] b = new byte[len + 3];
-        System.arraycopy(pkt,0,b,0,len);
-        b[len] = CRC.crc8(pkt);
-        b[len+1] = 0x04; // down key
-        b[len+2] = CRC.crc8(new byte[] {0x04}); // and the CRC for the param
-        return b;
-        */
+    }
+
+    public void onConfigureButtonClick(View view) {
+        doInitSequence();
+        updateChanDisp();
+    }
+
+    public void onIncTxCButtonClick(View view) {
+        txchan++;
+        if (txchan > 4) { txchan = 0; }
+        updateChanDisp();
+        RileyLinkCommand dummy = new RileyLinkCommand(getDevice(),mGattManager);
+        dummy.setTransmitChannel(txchan);
+    }
+
+    public void onIncRxCButtonClick(View view) {
+        rxchan++;
+        if (rxchan > 4) { rxchan = 0; }
+        updateChanDisp();
+        RileyLinkCommand dummy = new RileyLinkCommand(getDevice(),mGattManager);
+        dummy.setReceiveChannel(rxchan);
+    }
+
+    public void updateChanDisp() {
+        Button b = (Button)findViewById(R.id.button_incRxChan);
+        b.setText("RxC:"+rxchan);
+        b = (Button)findViewById(R.id.button_incTxChan);
+        b.setText("TxC:" + txchan);
+    }
+
+    public void doInitSequence() {
+
+        setNotify();
+        lm("setNotify()");
+        RileyLinkCommand dummy = new RileyLinkCommand(getDevice(),mGattManager);
+
+        dummy.setTransmitChannel(txchan);
+        lm("tx channel " + txchan);
+
+        // we can receive from the Carelink better on channel 1, (? no proof)
+        // but better from the Minimed on Channel 2 (?)
+        dummy.setReceiveChannel(rxchan);
+        lm("rx channel " + rxchan);
 
     }
 
-    public int initButtonClicks = 0;
-    public void onInitButtonClick(View view) {
-        initButtonClicks++;
-        if (mDeviceAddress == null) {
-            return;
-        }
-        RileyLinkCommand cmd = new RileyLinkCommand(mDevice,mGattManager);
-        cmd.addWrite(new byte[]{(byte) 0xa7});
-        cmd.run();
-        lm("Sent 0xa7 packet (x" + initButtonClicks + ")");
-/*
-        lm("(90 att + rf0n3min)");
-        mHandler.postDelayed(new Runnable() {
+    public void onReadBatteryLevelClick(View view) {
+        readBatteryLevel();
+    }
+
+    public void readBatteryLevel() {
+        ReadBatteryLevelCommand cmdReadBatteryLevel = new ReadBatteryLevelCommand(mDevice, mGattManager, new GattCharacteristicReadCallback() {
             @Override
-            public void run() {
-                sendButtonDown();
-                lm("ButtonDown");
-            }
-        }, 17 * 1000); // 17 seconds delay
-*/
+            public void call(final byte[] characteristic) {
+                runOnUiThread(new Runnable()
+                {
+                    @Override
+                    public void run() {
+                        ((TextView) findViewById(R.id.textView_batteryLevelValue)).setText(RileyLinkUtil.toHexString(characteristic));
+                    }
+                });
+            }});
+        cmdReadBatteryLevel.run();
     }
 
-    public void sendReadPumpModel() {
-        RileyLinkCommand cmdReadPumpModel = new RileyLinkCommand(mDevice,mGattManager);
-        cmdReadPumpModel.addWrite(pkt_readPumpModel);
-        cmdReadPumpModel.run();
-    }
-    public void onReadPumpModelClick(View view) {
-        if (mDeviceAddress == null) return;
-        sendReadPumpModel();
-        lm("(sent readPumpModel packet)");
-    }
-
-    public void sendButtonDown() {
-        RileyLinkCommand cmdButtonDown = new RileyLinkCommand(mDevice,mGattManager);
-        cmdButtonDown.addWrite(makePressDownPacket());
-        cmdButtonDown.run();
-    }
-
-    public void onPressDownButtonClick(View view) {
-        if (mDeviceAddress == null) {
-            return;
-        }
-        sendButtonDown();
-        lm("(sent press-down packet)");
-    }
-
-    public void sendRFOn(){
-        RileyLinkCommand cmdRFOn = new RileyLinkCommand(mDevice,mGattManager);
+    public void sendSimplePacket(byte[] data) {
+        RileyLinkCommand cmd = new RileyLinkCommand(mDevice, mGattManager);
         //cmdRFOn.addWrite(pkt_rfOn10min);
-        cmdRFOn.addWrite(makeRFOnPacket());
-        cmdRFOn.run();
+        cmd.addWriteWithChecksum(data);
+        cmd.run();
+        lm("Wrote pkt " + toHexString(data));
     }
 
-    public void onRFOnClick(View view) {
-        if (mDeviceAddress == null) return;
-        sendRFOn();
-        lm("(sent RF-On 10 minutes packet)");
+    public void sendWakeupSequence() {
+        lm("Sending 90 packet wakeup");
+        wakeupCounter = WAKEUP_COUNTER_MAX;
+        sendNextAttentionPacket();
     }
 
     public void onPacketCountReadButtonClick(View view) {
-        //setNotify();
         onCharaRead(GattAttributes.GLUCOSELINK_PACKET_COUNT, R.id.textView_PacketCountValue);
     }
 
+    /*
     public void onRxPacketReadButtonClick(View view) {
         String CharaUUID = GattAttributes.GLUCOSELINK_RX_PACKET_UUID;
         final int textViewId =R.id.textView_RxPacketValue;
@@ -302,12 +307,24 @@ public class RileyLinkTestActivity extends Activity implements CharacteristicCha
                 });
             }
         }));
-        //bundle.addOperation(new GattCharacteristicWriteOperation(getDevice(),UUID.fromString(GattAttributes.GLUCOSELINK_SERVICE_UUID),
-        //        UUID.fromString(GattAttributes.GLUCOSELINK_BUFFERCLEAR),new byte[] {0}));
-
         mGattManager.queue(bundle);
 
     }
+    */
+
+    public void onInit90ButtonClick(View view) {
+        sendWakeupSequence();
+    }
+
+    public void onReqModelNumberButtonClick(View view) {
+        sendSimplePacket(pkt_readPumpModel);
+    }
+
+    public void onSendButtonDownButtonClick(View view) {
+        sendSimplePacket(makePressDownPacket());
+    }
+
+
 
     public void onCharaRead(String CharaUUID, final int textViewId) {
         if (mDeviceAddress == null) {
@@ -336,7 +353,7 @@ public class RileyLinkTestActivity extends Activity implements CharacteristicCha
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                msgList.add(0,s);
+                msgList.add(0, s);
                 msgListAdapter.notifyDataSetChanged();
             }
         });
@@ -408,10 +425,8 @@ public class RileyLinkTestActivity extends Activity implements CharacteristicCha
         msgListAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, msgList);
         ListView lv = (ListView)findViewById(R.id.listView_msglist);
         lv.setAdapter(msgListAdapter);
-        lm("onResume Ready");
-        RileyLinkUtil.test();
 
-        if (getDevice()!=null) {
+        if (getDevice() != null) {
             lm("Connecting");
             closeGatt();
             getDevice().connectGatt(RileyLinkTestActivity.this, true, new BluetoothGattCallback() {
@@ -425,19 +440,16 @@ public class RileyLinkTestActivity extends Activity implements CharacteristicCha
                     if (status != BluetoothGatt.GATT_SUCCESS) {
                         L.e("Ouch! Disconnecting! status: " + status + " newState " + newState);
                         gatt.disconnect();
-                        enableButton(R.id.button_connected,false);
                         return;
                     }
 
                     if (newState == BluetoothProfile.STATE_CONNECTED) {
                         L.e("Connected to service!");
-                        enableButton(R.id.button_connected, true);
                         lm("Connected -- discovering services");
                         setGatt(gatt);
                         gatt.discoverServices();
                     } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
                         L.e("Link disconnected");
-                        enableButton(R.id.button_connected,false);
                         //gatt.close();
                     } else {
                         L.e("Received something else, ");
@@ -456,8 +468,6 @@ public class RileyLinkTestActivity extends Activity implements CharacteristicCha
                             for (BluetoothGattCharacteristic ch : clist) {
                                 if (ch.getUuid().equals(UUID.fromString(GattAttributes.GLUCOSELINK_PACKET_COUNT))) {
                                     Log.e("GGW", "Found Packet Count chara");
-                                    setNotify();
-                                    lm("setNotify()");
 
                                     List<BluetoothGattDescriptor> dlist = ch.getDescriptors();
                                     int i = 0;
@@ -472,9 +482,9 @@ public class RileyLinkTestActivity extends Activity implements CharacteristicCha
                                             valueString = toHexString(value);
                                         }
                                         String s = String.format("%d:perm=0x%X,UUID=%s,value=%s",
-                                                i,perm,u.toString(),valueString);
+                                                i, perm, u.toString(), valueString);
                                         i++;
-                                        Log.e("GGW",s);
+                                        Log.e("GGW", s);
                                     }
                                 }
                             }
@@ -484,8 +494,12 @@ public class RileyLinkTestActivity extends Activity implements CharacteristicCha
                     L.e("Now has services: " + mRileyLink.getServiceUUIDs());
                     lm("Now has services: " + mRileyLink.getServiceUUIDs());
 
-                    enableButton(R.id.button_services_found, true);
-
+                    enableButton(R.id.button_Init, true);
+                    enableButton(R.id.button_batteryLevel, true);
+                    //enableButton(R.id.button_RxPacketReadButton,true);
+                    enableButton(R.id.button_PacketCountReadButton, true);
+                    enableButton(R.id.button_incRxChan, true);
+                    enableButton(R.id.button_incTxChan, true);
 
                     new SimpleAsyncTask<Void>(getApplicationContext(), null) {
 
@@ -502,6 +516,7 @@ public class RileyLinkTestActivity extends Activity implements CharacteristicCha
                                     getDevice(),
                                     UUID.fromString(GattAttributes.GLUCOSELINK_SERVICE_UUID),
                                     UUID.fromString(GattAttributes.GLUCOSELINK_PACKET_COUNT)));
+
                             // Android BLE stack might have issues connecting to
                             // multiple Gatt services right after another.
                             // See: http://stackoverflow.com/questions/21237093/android-4-3-how-to-connect-to-multiple-bluetooth-low-energy-devices
@@ -516,4 +531,121 @@ public class RileyLinkTestActivity extends Activity implements CharacteristicCha
 
         Toast.makeText(this, "Yay! we got this far.", Toast.LENGTH_SHORT).show();
     }
+
+    public void sendNextAttentionPacket() {
+        mHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                // send the packet
+                RileyLinkCommand cmdRFOn = new RileyLinkCommand(mDevice, mGattManager);
+                byte[] wakeup = new byte[]{(byte) 0xa7, 0x46, 0x73, 0x24, 0x5d, 0x00};
+                //byte[] check = RileyLinkUtil.encodeData(wakeup);
+                cmdRFOn.addWriteWithChecksum(wakeup);
+                cmdRFOn.run();
+                // decrement counter
+                wakeupCounter--;
+                if (wakeupCounter > 0) {
+                    // reschedule
+                    sendNextAttentionPacket();
+                } else {
+                    lm("wakeup cycle complete");
+                    if (!mPolling) {
+                        mPolling = true;
+                        pollRxPacket(); // start polling packets when we've done the configure
+                    }
+                    //sendButtonDown();
+                    //lm("button down sent");
+                    //sendSimplePacket(pkt_readPumpRTC);
+                    //lm("sent readpump-rtc");
+
+                    //sendSimplePacket(pkt_readPumpModel);
+                    //lm("sent readpump-model");
+                }
+            }
+        }, WAKEUP_PERIOD /* millis */);
+    }
+
+    public void handleReceivedRxPacket(byte[] pkt) {
+        // enqueue in a receive buffer
+        // This packet is from the Rx Packet buffer, but as it is asynchronous,
+        // we don't know if this is a minimed response, or a carelink packet, or what.
+        // Inspect packet contents.
+        // If it is a "response to attention command (i.e. payload is 0x06, 0x00, <CRC=0x6E for my pump>)
+        // then we've gotten the pump's attention.
+        // Can: simply list all packets received (in log messages)
+        // Can: keep track of unique packets received, alert on new ones.
+
+        // if: length 3, malformed packet (noise), increment noise counter
+        if (pkt.length < 3) {
+            // bad packet from rileylink ???
+            // drop it on the floor.
+        }
+        if (pkt.length == 3) {
+            // malformed packet
+            // increase malformed packet counter
+        }
+        // if: new packet, print it.
+        // check packet against recorded packets
+
+        // if: checksum is wrong, note it.
+        // calculate checksum for packet
+        /*
+        must match from byte[2] to [length -2]
+        byte crc = CRC.crc8(pkt,pkt.length - 1);
+        if (crc != pkt[pkt.length-1]) {
+            // crc mismatch
+            lm("CRC mismatch");
+        }
+        */
+        // if: is an "attention response" packet, note that we have received a response
+        /*
+        if (pkt.length == 7) {
+            if ((pkt[4] == 0x06) && (pkt[5] == 0x00) && (pkt[6] == 0x6e)) {
+                // it is an attention response packet
+            }
+        }
+        */
+        // show statistics for noise packets, checksum correct, checksum wrong, attention responses received, other
+        // updateStatistics();
+        lm("recvd:" + toHexString(pkt));
+
+    }
+
+    public boolean getNextRxPacket() {
+        if (mDeviceAddress == null) {
+            return false; // means fail, don't call us again until the device is connected.
+        }
+        GattOperationBundle bundle = new GattOperationBundle();
+        bundle.addOperation(new GattCharacteristicReadOperation(getDevice(), UUID.fromString(GattAttributes.GLUCOSELINK_SERVICE_UUID),
+                UUID.fromString(GattAttributes.GLUCOSELINK_RX_PACKET_UUID), new GattCharacteristicReadCallback() {
+            @Override
+            public void call(byte[] characteristic) {
+                // if response is empty, start next delayed poll
+                if ((characteristic == null) || (characteristic.length == 0)) {
+                    return;
+                } else {
+                    // else, drain RxPacket
+                    handleReceivedRxPacket(characteristic);
+                    getNextRxPacket();
+                }
+            }
+        }));
+
+        mGattManager.queue(bundle);
+        return true; // means operation succeeded, can call us again (means mDeviceAddress was not null)
+
+    }
+
+    public void pollRxPacket() {
+        mHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                if (getNextRxPacket()) {
+                    pollRxPacket();
+                }
+            }
+        }, RX_POLL_PERIOD_MS /* millis */);
+    }
+
+
 }
